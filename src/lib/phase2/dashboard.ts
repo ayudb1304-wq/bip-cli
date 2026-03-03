@@ -29,6 +29,17 @@ type WorkerOutput = {
   };
 };
 
+function toAssetHref(assetUrl: string | undefined): string | undefined {
+  if (!assetUrl) return undefined;
+  if (/^https?:\/\//.test(assetUrl)) return assetUrl;
+  if (assetUrl.startsWith("/api/assets?path=")) return assetUrl;
+  // Local file system paths are exposed through dashboard API route.
+  if (path.isAbsolute(assetUrl)) {
+    return `/api/assets?path=${encodeURIComponent(assetUrl)}`;
+  }
+  return assetUrl;
+}
+
 function getOutputsDir(cwd = process.cwd()): string {
   return path.join(cwd, ".bip", "engine", "outputs");
 }
@@ -61,7 +72,10 @@ function toTimelineItem(
     updatedAt: record.updatedAt,
     retries: record.attempts,
     outputPath: output?.path,
-    assets: output?.parsed.assets,
+    assets: {
+      snippetCardUrl: toAssetHref(output?.parsed.assets?.snippetCardUrl),
+      progressDashboardUrl: toAssetHref(output?.parsed.assets?.progressDashboardUrl),
+    },
   };
 }
 

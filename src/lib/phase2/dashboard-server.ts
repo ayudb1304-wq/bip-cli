@@ -1,4 +1,6 @@
 import http from "node:http";
+import fs from "node:fs";
+import path from "node:path";
 import { getDashboardSnapshot } from "./dashboard.js";
 import { exportTimelineMarkdown, exportTypefullyPayload } from "./exports.js";
 
@@ -12,6 +14,14 @@ function sendText(res: http.ServerResponse, code: number, content: string, conte
   res.statusCode = code;
   res.setHeader("content-type", contentType);
   res.end(content);
+}
+
+function guessMime(filePath: string): string {
+  const ext = path.extname(filePath).toLowerCase();
+  if (ext === ".svg") return "image/svg+xml";
+  if (ext === ".png") return "image/png";
+  if (ext === ".jpg" || ext === ".jpeg") return "image/jpeg";
+  return "application/octet-stream";
 }
 
 const frontendHtml = `<!doctype html>
@@ -77,6 +87,7 @@ export function startDashboardServer(options?: {
       sendJson(res, 400, { error: "missing url" });
       return;
     }
+    const url = new URL(req.url, `http://${req.headers.host ?? "localhost"}`);
 
     if (req.method === "GET" && req.url === "/healthz") {
       sendJson(res, 200, { ok: true });
@@ -85,6 +96,28 @@ export function startDashboardServer(options?: {
 
     if (req.method === "GET" && req.url === "/api/timeline") {
       sendJson(res, 200, getDashboardSnapshot(cwd));
+      return;
+    }
+
+    if (req.method === "GET" && url.pathname === "/api/assets") {
+      const rawPath = url.searchParams.get("path");
+      if (!rawPath) {
+        sendJson(res, 400, { error: "missing path query parameter" });
+        return;
+      }
+      const resolved = path.resolve(rawPath);
+      const allowedRoot = path.resolve(path.join(cwd, ".bip", "engine", "assets"));
+      if (!resolved.startsWith(allowedRoot)) {
+        sendJson(res, 403, { error: "asset path is outside allowed directory" });
+        return;
+      }
+      if (!fs.existsSync(resolved)) {
+        sendJson(res, 404, { error: "asset not found" });
+        return;
+      }
+      res.statusCode = 200;
+      res.setHeader("content-type", guessMime(resolved));
+      fs.createReadStream(resolved).pipe(res);
       return;
     }
 

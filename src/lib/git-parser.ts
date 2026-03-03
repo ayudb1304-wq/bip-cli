@@ -55,7 +55,7 @@ export async function parseDiff(
 ): Promise<DiffResult> {
   const git: SimpleGit = simpleGit(repoPath ?? process.cwd());
 
-  const log = await git.log({ from: commitSha, to: commitSha, maxCount: 1 });
+  const log = await git.log(["-1", commitSha]);
 
   if (!log.latest) {
     throw new Error(`Commit ${commitSha} not found in repository.`);

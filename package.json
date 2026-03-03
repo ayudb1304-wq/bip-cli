@@ -7,19 +7,37 @@
   "bin": {
     "bip": "./dist/index.js"
   },
+  "files": [
+    "dist/index.*",
+    "dist/commands/**",
+    "dist/lib/**",
+    "README.md",
+    "LICENSE"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ayudb1304-wq/bip-cli.git"
+  },
+  "homepage": "https://github.com/ayudb1304-wq/bip-cli#readme",
   "scripts": {
     "build": "tsc",
     "dev": "tsx src/index.ts",
     "start": "node dist/index.js",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "prepublishOnly": "npm run build && npm test"
   },
   "keywords": [
     "build-in-public",
     "cli",
     "git",
     "social-media",
-    "developer-tools"
+    "developer-tools",
+    "ai",
+    "gemini",
+    "twitter",
+    "linkedin",
+    "devlog"
   ],
   "author": "Ayush Bhiogade",
   "license": "MIT",

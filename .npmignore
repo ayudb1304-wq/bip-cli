@@ -1,0 +1,12 @@
+src/
+development/
+TechnicalBiP
+.bip/
+.env
+.env.example
+*.tsbuildinfo
+vitest.config.ts
+tsconfig.json
+node_modules/
+.git/
+.cursor/

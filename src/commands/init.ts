@@ -4,11 +4,36 @@ import chalk from "chalk";
 import yaml from "js-yaml";
 import fs from "node:fs";
 import path from "node:path";
+import { execSync } from "node:child_process";
 import type { BipConfig } from "../lib/config.js";
+
+function printSushiBanner(): void {
+  const banner = `
+███████╗██╗   ██╗███████╗██╗  ██╗██╗
+██╔════╝██║   ██║██╔════╝██║  ██║██║
+███████╗██║   ██║███████╗███████║██║
+╚════██║██║   ██║╚════██║██╔══██║██║
+███████║╚██████╔╝███████║██║  ██║██║
+╚══════╝ ╚═════╝ ╚══════╝╚═╝  ╚═╝╚═╝
+`;
+
+  console.log(chalk.hex("#d18b6a")(banner));
+  console.log(chalk.bold("Build in public without context-switching.\n"));
+}
+
+function getGitUserName(): string {
+  try {
+    return execSync("git config user.name", { encoding: "utf-8" }).trim();
+  } catch {
+    return "";
+  }
+}
 
 export const initCommand = new Command("init")
   .description("Initialize a new BiP configuration in the current project")
   .action(async () => {
+    printSushiBanner();
+
     const bipDir = path.resolve(process.cwd(), ".bip");
     const configPath = path.join(bipDir, "config.yml");
 
@@ -38,7 +63,7 @@ export const initCommand = new Command("init")
         type: "input",
         name: "name",
         message: "Your name:",
-        default: "Ayush Bhiogade",
+        default: getGitUserName() || undefined,
       },
       {
         type: "checkbox",

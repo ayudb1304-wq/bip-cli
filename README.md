@@ -6,12 +6,13 @@ Turn your Git commits into ready-to-post social media content. Sushi analyzes yo
 
 Using Cursor, Windsurf, or another AI-powered IDE? Paste this prompt into your agent and it will handle everything:
 
-> Install sushi globally with `npm install -g @ayudb1304/sushi`. Then create a `.env`
-> file in my project root with `GEMINI_API_KEY=<my-key>` (ask me for the key if I
-> haven't provided it). Then run `sushi init` to set up the config -- use my git
-> username as the name, select both X and LinkedIn, and pick Technical tone. Finally,
-> run `sushi generate --commit HEAD --save` to generate social media drafts for my
-> latest commit.
+> Use `npx @ayudb1304/sushi` for all Sushi commands (do not install globally).
+> Create a `.env` file in my project root with `GEMINI_API_KEY=<my-key>` (ask me for
+> the key if I haven't provided it). Then run `npx @ayudb1304/sushi init` to set up
+> the config -- use my git username as the name, select both X and LinkedIn, and pick
+> Technical tone. Finally, run
+> `npx @ayudb1304/sushi generate --commit HEAD --save` to generate social media drafts
+> for my latest commit.
 
 That's it -- you'll have X and LinkedIn drafts in `.bip/drafts/` within a minute.
 
@@ -19,15 +20,25 @@ That's it -- you'll have X and LinkedIn drafts in `.bip/drafts/` within a minute
 
 ## Install (manual)
 
-```bash
-npm install -g @ayudb1304/sushi
-```
-
-Or run directly without installing:
+Run directly without installing (recommended):
 
 ```bash
 npx @ayudb1304/sushi generate --commit HEAD
 ```
+
+Optional: install globally for a shorter command:
+
+```bash
+npm install -g @ayudb1304/sushi
+```
+
+Then use:
+
+```bash
+sushi generate --commit HEAD
+```
+
+If global install succeeds but `sushi` is not found, see [PATH troubleshooting](#path-troubleshooting-global-install-users).
 
 ## Setup (one time)
 
@@ -51,17 +62,23 @@ GEMINI_API_KEY=your-key-here
 
 ```bash
 cd your-project
-sushi init
+npx @ayudb1304/sushi init
 ```
 
 This prompts for your name, platforms (X, LinkedIn), and preferred tone (Technical, Professional, Casual), then saves the config to `.bip/config.yml`.
+
+If you installed globally and your shell can resolve `sushi`, you can run:
+
+```bash
+sushi init
+```
 
 ## Usage
 
 ### Generate social media drafts from a commit
 
 ```bash
-sushi generate --commit HEAD
+npx @ayudb1304/sushi generate --commit HEAD
 ```
 
 This analyzes the commit, calls Gemini to understand what changed and why, then prints platform-specific drafts to your terminal:
@@ -72,14 +89,14 @@ This analyzes the commit, calls Gemini to understand what changed and why, then 
 Add `--save` to write the drafts as markdown files:
 
 ```bash
-sushi generate --commit abc1234 --save
+npx @ayudb1304/sushi generate --commit abc1234 --save
 # Saves to .bip/drafts/abc1234-x.md and .bip/drafts/abc1234-linkedin.md
 ```
 
 ### Just get the narrative (no social drafts)
 
 ```bash
-sushi summarize --commit abc1234
+npx @ayudb1304/sushi summarize --commit abc1234
 ```
 
 Prints the raw problem/solution/risk/testing-notes analysis and saves it as JSON to `.bip/narratives/`.
@@ -88,9 +105,37 @@ Prints the raw problem/solution/risk/testing-notes analysis and saves it as JSON
 
 | Command | Description |
 |---------|-------------|
-| `sushi init` | Interactive setup -- creates `.bip/config.yml` |
-| `sushi summarize --commit <sha>` | Analyze a commit, print the narrative |
-| `sushi generate --commit <sha> [--save]` | Generate X + LinkedIn drafts from a commit |
+| `npx @ayudb1304/sushi init` | Interactive setup -- creates `.bip/config.yml` |
+| `npx @ayudb1304/sushi summarize --commit <sha>` | Analyze a commit, print the narrative |
+| `npx @ayudb1304/sushi generate --commit <sha> [--save]` | Generate X + LinkedIn drafts from a commit |
+
+## PATH troubleshooting (global install users)
+
+If `npm install -g @ayudb1304/sushi` succeeds but `sushi` shows `command not found`,
+your npm global bin directory is not in your shell `PATH`.
+
+1. Find your npm global prefix:
+
+```bash
+npm config get prefix
+```
+
+2. Add `<prefix>/bin` to your PATH (zsh):
+
+```bash
+echo 'export PATH="$(npm config get prefix)/bin:$PATH"' >> ~/.zshrc
+source ~/.zshrc
+hash -r
+```
+
+3. Verify:
+
+```bash
+which sushi
+sushi --version
+```
+
+If you want zero shell setup, use `npx @ayudb1304/sushi ...` instead of global install.
 
 ## How it works
 

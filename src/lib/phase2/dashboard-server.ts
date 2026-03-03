@@ -18,60 +18,44 @@ function sendText(res: http.ServerResponse, code: number, content: string, conte
 
 function guessMime(filePath: string): string {
   const ext = path.extname(filePath).toLowerCase();
+  if (ext === ".html") return "text/html; charset=utf-8";
+  if (ext === ".js") return "application/javascript; charset=utf-8";
+  if (ext === ".css") return "text/css; charset=utf-8";
+  if (ext === ".json") return "application/json; charset=utf-8";
+  if (ext === ".woff2") return "font/woff2";
   if (ext === ".svg") return "image/svg+xml";
   if (ext === ".png") return "image/png";
   if (ext === ".jpg" || ext === ".jpeg") return "image/jpeg";
   return "application/octet-stream";
 }
 
-const frontendHtml = `<!doctype html>
-<html>
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>BiP Dashboard</title>
-    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    <style>
-      body { font-family: Inter, Arial, sans-serif; margin: 0; background: #0f172a; color: #e2e8f0; }
-      .container { max-width: 980px; margin: 24px auto; padding: 0 16px; }
-      .card { background: #1e293b; border-radius: 12px; padding: 14px; margin-bottom: 12px; }
-      .meta { color: #94a3b8; font-size: 13px; }
-      button { margin-right: 8px; padding: 8px 10px; border-radius: 8px; border: 0; cursor: pointer; }
-    </style>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script>
-      const e = React.createElement;
-      function App() {
-        const [snapshot, setSnapshot] = React.useState(null);
-        const [loading, setLoading] = React.useState(true);
-        React.useEffect(() => {
-          fetch('/api/timeline').then(r => r.json()).then(data => { setSnapshot(data); setLoading(false); });
-        }, []);
-        if (loading) return e('div', { className: 'container' }, 'Loading...');
-        return e('div', { className: 'container' },
-          e('h1', null, 'BiP Timeline'),
-          e('div', { className: 'meta' }, 'pending: ' + snapshot.stats.pending + ' | processing: ' + snapshot.stats.processing + ' | processed: ' + snapshot.stats.processed + ' | dlq: ' + snapshot.stats.dlq),
-          e('div', { style: { margin: '16px 0' } },
-            e('button', { onClick: async () => { const res = await fetch('/api/export/markdown', { method: 'POST' }); const text = await res.text(); alert(text.slice(0, 280)); } }, 'Export Markdown'),
-            e('button', { onClick: async () => { const res = await fetch('/api/export/typefully', { method: 'POST' }); const text = await res.text(); alert(text.slice(0, 280)); } }, 'Export Typefully JSON')
-          ),
-          ...snapshot.timeline.map((item) =>
-            e('div', { className: 'card', key: item.id },
-              e('div', null, item.repo + ' ' + item.commitSha.slice(0, 8)),
-              e('div', { className: 'meta' }, item.status + ' | retries: ' + item.retries + ' | ' + item.updatedAt),
-              item.assets && item.assets.snippetCardUrl ? e('a', { href: item.assets.snippetCardUrl, target: '_blank' }, 'Snippet asset') : null,
-              item.assets && item.assets.progressDashboardUrl ? e('div', null, e('a', { href: item.assets.progressDashboardUrl, target: '_blank' }, 'Progress asset')) : null
-            )
-          )
-        );
-      }
-      ReactDOM.createRoot(document.getElementById('root')).render(e(App));
-    </script>
-  </body>
-</html>`;
+function getDashboardDistDir(cwd = process.cwd()): string {
+  return path.join(cwd, "dashboard", "dist");
+}
+
+function serveFile(res: http.ServerResponse, filePath: string): void {
+  res.statusCode = 200;
+  res.setHeader("content-type", guessMime(filePath));
+  fs.createReadStream(filePath).pipe(res);
+}
+
+function tryServeDashboardAsset(
+  reqPath: string,
+  cwd: string,
+  res: http.ServerResponse
+): boolean {
+  const distDir = getDashboardDistDir(cwd);
+  if (!fs.existsSync(distDir)) return false;
+
+  const normalized = reqPath === "/" ? "/index.html" : reqPath;
+  const resolved = path.resolve(path.join(distDir, normalized.replace(/^\/+/, "")));
+
+  if (!resolved.startsWith(path.resolve(distDir))) return false;
+  if (!fs.existsSync(resolved) || !fs.statSync(resolved).isFile()) return false;
+
+  serveFile(res, resolved);
+  return true;
+}
 
 export function startDashboardServer(options?: {
   port?: number;
@@ -131,9 +115,24 @@ export function startDashboardServer(options?: {
       return;
     }
 
-    if (req.method === "GET" && req.url === "/") {
-      sendText(res, 200, frontendHtml, "text/html; charset=utf-8");
-      return;
+    if (req.method === "GET") {
+      if (tryServeDashboardAsset(url.pathname, cwd, res)) {
+        return;
+      }
+      if (!url.pathname.startsWith("/api/")) {
+        const indexPath = path.join(getDashboardDistDir(cwd), "index.html");
+        if (fs.existsSync(indexPath)) {
+          serveFile(res, indexPath);
+          return;
+        }
+        sendText(
+          res,
+          503,
+          "Dashboard frontend is not built yet. Run `npm run dashboard:build`.",
+          "text/plain; charset=utf-8"
+        );
+        return;
+      }
     }
 
     sendJson(res, 404, { error: "not found" });

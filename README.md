@@ -158,6 +158,13 @@ export BIP_ASSET_CDN_BASE_URL="https://cdn.example.com" # optional
 
 ### End-to-end Phase 2 flow
 
+0. Build the modern dashboard frontend (one-time, or after UI changes):
+
+```bash
+npm --prefix dashboard install
+npm run dashboard:build
+```
+
 1. Start webhook receiver:
 
 ```bash
@@ -179,6 +186,8 @@ npx @ayudb1304/sushi run-worker
 4. Inspect timeline and assets:
 
 ```bash
+# if you changed dashboard UI, rebuild before serving
+npm run dashboard:build
 npx @ayudb1304/sushi serve-dashboard --port 8788
 # open http://localhost:8788
 ```

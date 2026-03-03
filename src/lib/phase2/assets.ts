@@ -23,6 +23,18 @@ function escapeXml(text: string): string {
     .replaceAll("'", "&#39;");
 }
 
+function detectLanguage(filePath: string): string {
+  const ext = path.extname(filePath).toLowerCase();
+  if (ext === ".ts" || ext === ".tsx") return "TypeScript";
+  if (ext === ".js" || ext === ".jsx") return "JavaScript";
+  if (ext === ".py") return "Python";
+  if (ext === ".go") return "Go";
+  if (ext === ".java") return "Java";
+  if (ext === ".rs") return "Rust";
+  if (ext === ".json") return "JSON";
+  return ext ? ext.slice(1).toUpperCase() : "Code";
+}
+
 export function selectSnippetFromDiff(normalized: NormalizedDiff): SnippetSelection | null {
   if (normalized.files.length === 0) return null;
   const target = [...normalized.files].sort(
@@ -43,17 +55,42 @@ export function selectSnippetFromDiff(normalized: NormalizedDiff): SnippetSelect
 }
 
 export function buildSnippetCardSvg(selection: SnippetSelection): string {
-  const body = escapeXml(selection.snippet);
+  const lines = selection.snippet
+    .split("\n")
+    .map((line, index) => `<tspan x="102" dy="${index === 0 ? 0 : 32}">${escapeXml(line)}</tspan>`)
+    .join("");
   const title = escapeXml(selection.filePath);
+  const language = detectLanguage(selection.filePath);
   return `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="675">
-  <rect width="1200" height="675" fill="#111827" />
-  <rect x="40" y="40" width="1120" height="595" rx="18" fill="#1f2937" stroke="#374151" />
-  <text x="70" y="95" font-size="28" font-family="Menlo,Monaco,monospace" fill="#93c5fd">${title}</text>
-  <foreignObject x="70" y="130" width="1060" height="480">
-    <div xmlns="http://www.w3.org/1999/xhtml" style="color:#e5e7eb;font-family:Menlo,Monaco,monospace;font-size:20px;line-height:1.5;white-space:pre-wrap;">
-${body}
-    </div>
-  </foreignObject>
+  <defs>
+    <linearGradient id="bgA" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#102234" />
+      <stop offset="50%" stop-color="#15354A" />
+      <stop offset="100%" stop-color="#0D1A28" />
+    </linearGradient>
+    <linearGradient id="glow" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#44A194" stop-opacity="0.9" />
+      <stop offset="100%" stop-color="#537D96" stop-opacity="0.95" />
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="675" fill="url(#bgA)" />
+  <rect x="48" y="48" width="1104" height="579" rx="26" fill="#0D2234" stroke="#2B4D63" />
+  <rect x="48" y="48" width="1104" height="8" rx="26" fill="url(#glow)" />
+
+  <rect x="84" y="96" width="1032" height="58" rx="14" fill="#0F2A3D" stroke="#2A4A61" />
+  <circle cx="114" cy="125" r="8" fill="#EC8F8D" />
+  <circle cx="142" cy="125" r="8" fill="#F4F0E4" />
+  <circle cx="170" cy="125" r="8" fill="#44A194" />
+  <text x="200" y="133" font-size="24" font-family="'Syne','Space Grotesk',sans-serif" fill="#F4F0E4">${title}</text>
+  <text x="1030" y="133" font-size="18" font-family="'Space Grotesk',sans-serif" fill="#9BC3D5">${language}</text>
+
+  <rect x="84" y="180" width="1032" height="402" rx="18" fill="#0A1824" stroke="#244257" />
+  <rect x="84" y="180" width="6" height="402" rx="6" fill="#44A194" />
+  <text x="102" y="238" font-size="27" font-family="'JetBrains Mono',ui-monospace,monospace" fill="#EAF6FF">
+${lines}
+  </text>
+
+  <text x="84" y="620" font-size="18" font-family="'Space Grotesk',sans-serif" fill="#8FB5C8">BiP Snippet • Human-reviewed draft asset</text>
 </svg>`;
 }
 
@@ -61,16 +98,39 @@ export function buildProgressDashboardSvg(metrics: ProgressMetrics): string {
   const total = Math.max(metrics.locAdded + metrics.locDeleted, 1);
   const addPct = Math.min(100, Math.round((metrics.locAdded / total) * 100));
   const delPct = Math.min(100, Math.round((metrics.locDeleted / total) * 100));
+  const trendA = Math.max(10, 460 - Math.round(addPct * 2.4));
+  const trendB = Math.max(10, 460 - Math.round(delPct * 2.4));
   return `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="675">
-  <rect width="1200" height="675" fill="#0f172a" />
-  <text x="60" y="90" font-size="42" font-family="Inter,Arial,sans-serif" fill="#e2e8f0">Weekly Build Progress</text>
-  <text x="60" y="150" font-size="30" font-family="Inter,Arial,sans-serif" fill="#93c5fd">Files Changed: ${metrics.filesChanged}</text>
-  <rect x="60" y="220" width="1080" height="56" rx="12" fill="#1e293b" />
-  <rect x="60" y="220" width="${Math.round((1080 * addPct) / 100)}" height="56" rx="12" fill="#22c55e" />
-  <text x="60" y="315" font-size="26" font-family="Inter,Arial,sans-serif" fill="#86efac">LOC Added: ${metrics.locAdded} (${addPct}%)</text>
-  <rect x="60" y="380" width="1080" height="56" rx="12" fill="#1e293b" />
-  <rect x="60" y="380" width="${Math.round((1080 * delPct) / 100)}" height="56" rx="12" fill="#f87171" />
-  <text x="60" y="475" font-size="26" font-family="Inter,Arial,sans-serif" fill="#fca5a5">LOC Deleted: ${metrics.locDeleted} (${delPct}%)</text>
+  <defs>
+    <linearGradient id="dashBg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0A1724" />
+      <stop offset="100%" stop-color="#050E17" />
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="675" fill="url(#dashBg)" />
+  <rect x="44" y="44" width="1112" height="587" rx="24" fill="#081725" stroke="#234257" />
+
+  <text x="84" y="118" font-size="58" font-family="'Syne','Space Grotesk',sans-serif" fill="#F4F0E4">Build Progress</text>
+  <text x="84" y="154" font-size="24" font-family="'Space Grotesk',sans-serif" fill="#9FC0D1">Last 7 Days</text>
+
+  <rect x="84" y="182" width="1032" height="220" rx="16" fill="#0D2233" stroke="#21465D" />
+  <polyline fill="none" stroke="#44A194" stroke-width="5" points="120,${trendA + 40} 280,${trendA} 440,${trendA + 18} 600,${trendA - 16} 760,${trendA + 26} 920,${trendA + 8} 1080,${trendA + 22}" />
+  <polyline fill="none" stroke="#EC8F8D" stroke-width="5" points="120,${trendB + 46} 280,${trendB + 10} 440,${trendB + 26} 600,${trendB + 6} 760,${trendB + 34} 920,${trendB + 16} 1080,${trendB + 24}" />
+  <line x1="84" y1="366" x2="1116" y2="366" stroke="#274960" stroke-width="2" />
+
+  <rect x="84" y="430" width="318" height="158" rx="16" fill="#0F2436" stroke="#2A4E66" />
+  <text x="108" y="470" font-size="22" font-family="'Space Grotesk',sans-serif" fill="#A7C3D2">Files Changed</text>
+  <text x="108" y="540" font-size="62" font-family="'Syne','Space Grotesk',sans-serif" fill="#F4F0E4">${metrics.filesChanged}</text>
+
+  <rect x="441" y="430" width="318" height="158" rx="16" fill="#0F2436" stroke="#2A4E66" />
+  <text x="465" y="470" font-size="22" font-family="'Space Grotesk',sans-serif" fill="#A7C3D2">LOC Added</text>
+  <text x="465" y="540" font-size="62" font-family="'Syne','Space Grotesk',sans-serif" fill="#44A194">${metrics.locAdded}</text>
+  <text x="465" y="572" font-size="22" font-family="'Space Grotesk',sans-serif" fill="#9BC2D3">${addPct}% of change volume</text>
+
+  <rect x="798" y="430" width="318" height="158" rx="16" fill="#0F2436" stroke="#2A4E66" />
+  <text x="822" y="470" font-size="22" font-family="'Space Grotesk',sans-serif" fill="#A7C3D2">LOC Deleted</text>
+  <text x="822" y="540" font-size="62" font-family="'Syne','Space Grotesk',sans-serif" fill="#EC8F8D">${metrics.locDeleted}</text>
+  <text x="822" y="572" font-size="22" font-family="'Space Grotesk',sans-serif" fill="#9BC2D3">${delPct}% of change volume</text>
 </svg>`;
 }
 

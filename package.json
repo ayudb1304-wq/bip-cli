@@ -21,6 +21,9 @@
   "homepage": "https://github.com/ayudb1304-wq/bip-cli#readme",
   "scripts": {
     "build": "tsc",
+    "build:all": "npm run build && npm run dashboard:build",
+    "dashboard:dev": "npm --prefix dashboard run dev",
+    "dashboard:build": "npm --prefix dashboard run build",
     "dev": "tsx src/index.ts",
     "start": "node dist/index.js",
     "test": "vitest run",

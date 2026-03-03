@@ -16,6 +16,10 @@ export type DashboardTimelineItem = {
     snippetCardUrl?: string;
     progressDashboardUrl?: string;
   };
+  drafts?: {
+    x?: string;
+    linkedin?: string;
+  };
 };
 
 type WorkerOutput = {
@@ -23,6 +27,10 @@ type WorkerOutput = {
     id: string;
     commitSha: string;
   };
+  drafts?: Array<{
+    platform: string;
+    content: string;
+  }>;
   assets?: {
     snippetCardUrl?: string;
     progressDashboardUrl?: string;
@@ -42,6 +50,16 @@ function toAssetHref(assetUrl: string | undefined): string | undefined {
 
 function getOutputsDir(cwd = process.cwd()): string {
   return path.join(cwd, ".bip", "engine", "outputs");
+}
+
+function extractDrafts(
+  drafts: Array<{ platform: string; content: string }> | undefined
+): DashboardTimelineItem["drafts"] {
+  if (!drafts || drafts.length === 0) return {};
+  return {
+    x: drafts.find((draft) => draft.platform === "x")?.content,
+    linkedin: drafts.find((draft) => draft.platform === "linkedin")?.content,
+  };
 }
 
 export function listWorkerOutputs(cwd = process.cwd()): Array<{ path: string; parsed: WorkerOutput }> {
@@ -76,6 +94,7 @@ function toTimelineItem(
       snippetCardUrl: toAssetHref(output?.parsed.assets?.snippetCardUrl),
       progressDashboardUrl: toAssetHref(output?.parsed.assets?.progressDashboardUrl),
     },
+    drafts: extractDrafts(output?.parsed.drafts),
   };
 }
 

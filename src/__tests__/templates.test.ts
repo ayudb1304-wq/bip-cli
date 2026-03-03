@@ -131,4 +131,21 @@ describe("renderDrafts", () => {
     );
     expect(drafts).toEqual([]);
   });
+
+  it("truncates very large file lists with a summary suffix", () => {
+    const manyFiles = Array.from({ length: 12 }, (_, i) => ({
+      filename: `src/file-${i}.ts`,
+      additions: i + 1,
+      deletions: i,
+      rawDiff: `diff --git a/src/file-${i}.ts b/src/file-${i}.ts`,
+    }));
+
+    const drafts = renderDrafts(
+      makeNarrative(),
+      makeDiff({ files: manyFiles }),
+      makeConfig({ platforms: ["linkedin"] })
+    );
+    const liDraft = drafts[0];
+    expect(liDraft.content).toContain("...and 4 more file(s)");
+  });
 });

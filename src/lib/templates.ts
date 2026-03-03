@@ -42,8 +42,15 @@ function getTone(tone: string): ToneStyle {
   return TONE_STYLES[tone] ?? TONE_STYLES.technical;
 }
 
-function filesSummary(diff: DiffResult): string {
-  return diff.files.map((f) => `${f.filename} (+${f.additions}/-${f.deletions})`).join(", ");
+function filesSummary(diff: DiffResult, maxFiles = 8): string {
+  const listed = diff.files
+    .slice(0, maxFiles)
+    .map((f) => `${f.filename} (+${f.additions}/-${f.deletions})`);
+  const remaining = diff.files.length - listed.length;
+  if (remaining > 0) {
+    listed.push(`...and ${remaining} more file(s)`);
+  }
+  return listed.join(", ");
 }
 
 function renderX(

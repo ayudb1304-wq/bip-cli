@@ -8,140 +8,151 @@
 
 ## Phase 1 -- CLI "Diff-to-Post" MVP
 
-The core local CLI tool. Reads diffs from a local Git repo, calls an LLM to generate a problem/solution narrative, and outputs platform-specific text drafts to stdout or a markdown file.
+The local CLI reads diffs from a Git repo, calls an LLM to generate a problem/solution narrative, and outputs platform-specific drafts to stdout or markdown.
 
 ### 1.1 Project Scaffold
 
 | Task | Status | Notes |
 |------|--------|-------|
-| `package.json` with deps and `"bin": { "bip": ... }` | DONE | commander, simple-git, js-yaml, chalk, dotenv, inquirer |
+| `package.json` with deps and `"bin": { "sushi": ... }` | DONE | Commander, simple-git, js-yaml, chalk, dotenv, inquirer |
 | `tsconfig.json` (ES2022, NodeNext, strict) | DONE | outDir `dist/`, rootDir `src/` |
 | `.gitignore` (node_modules, dist, .env, .bip) | DONE | |
 | Directory structure: `src/`, `src/commands/`, `src/lib/` | DONE | |
-| npm scripts: `build`, `dev`, `start`, `test`, `test:watch` | DONE | `tsc`, `tsx src/index.ts`, `node dist/index.js`, `vitest run`, `vitest` |
+| npm scripts: `build`, `dev`, `start`, `test`, `test:watch` | DONE | |
 
 ### 1.2 CLI Entry Point
 
 | Task | Status | Notes |
 |------|--------|-------|
-| `src/index.ts` -- Commander program, shebang, version 0.1.0 | DONE | Registers all subcommands, loads dotenv |
+| `src/index.ts` Commander program with shebang | DONE | Registers all commands, loads dotenv |
 | Register `init` command | DONE | |
-| Register `summarize` command | DONE | `bip summarize --commit <sha>` |
-| Register `generate` command | DONE | `bip generate --commit <sha> [--save]` |
+| Register `summarize` command | DONE | `sushi summarize --commit <sha>` |
+| Register `generate` command | DONE | `sushi generate --commit <sha> [--save]` |
+| Register Phase 2 bootstrap commands | DONE | `sushi ingest-github`, `sushi run-worker` |
 
-### 1.3 `bip init` Command
+### 1.3 `sushi init` Command
 
 | Task | Status | Notes |
 |------|--------|-------|
-| Interactive prompts (name, platforms, tone) via inquirer | DONE | Defaults: Ayush Bhiogade, [x, linkedin], Technical |
+| Interactive prompts (name, platforms, tone) via inquirer | DONE | Defaults from Git user name |
 | Write `.bip/config.yml` via js-yaml | DONE | Creates `.bip/` dir if missing |
 | Overwrite guard for existing config | DONE | Confirmation prompt before replacing |
-| Success message with chalk | DONE | |
+| Success + policy-safe messaging | DONE | Reminds users about manual posting and platform rules |
+| Terminal banner branding | DONE | Prints SUSHI banner during init |
 
 ### 1.4 Git Parser (`src/lib/git-parser.ts`)
 
 | Task | Status | Notes |
 |------|--------|-------|
 | `parseDiff(commitSha, repoPath?)` function | DONE | Uses simple-git |
-| Extract commit metadata (hash, message, author, date) | DONE | Via `git.log()` |
-| Extract raw patch and split per-file | DONE | Splits on `diff --git` boundaries |
-| `FileDiff` interface (filename, additions, deletions, rawDiff) | DONE | Counts `+`/`-` lines excluding `+++`/`---` headers |
+| Extract commit metadata (hash, message, author, date) | DONE | |
+| Extract raw patch and split per-file | DONE | |
+| `FileDiff` interface (filename, additions, deletions, rawDiff) | DONE | |
 | `DiffResult` interface (commitSha, message, author, date, files) | DONE | |
 
 ### 1.5 Config Loader
 
 | Task | Status | Notes |
 |------|--------|-------|
-| `src/lib/config.ts` -- load and validate `.bip/config.yml` | DONE | Read YAML, return typed `BipConfig` object. Shared interface used by `init.ts` |
-| Error handling for missing/malformed config | DONE | Validates user.name, platforms (non-empty array), tone (string) |
+| `src/lib/config.ts` load/validate `.bip/config.yml` | DONE | Shared typed `BipConfig` |
+| Error handling for missing/malformed config | DONE | Includes `npx @ayudb1304/sushi init` guidance |
 
 ### 1.6 LLM Integration (`src/lib/llm.ts`)
 
 | Task | Status | Notes |
 |------|--------|-------|
-| Google AI Studio client (Gemini 2.5 Flash) | DONE | `@google/generative-ai` SDK, JSON response mode |
-| `.env` config for `GEMINI_API_KEY` | DONE | Loaded via `dotenv/config` in entry point, `.env.example` provided |
-| Design "commit story" prompt (JSON-in / JSON-out) | DONE | Input: diff metadata + raw patches. Output: `{ problem, solution, risk, testingNotes }` |
-| Anti-hallucination constraints in prompt | DONE | "ONLY reference entities in context", "Do NOT invent", "state unclear if unsure" |
-| Token budget awareness | DONE | Raw diffs capped at 3000 chars per file in prompt |
+| Google AI Studio client (Gemini 2.5 Flash) | DONE | `@google/generative-ai` SDK |
+| `.env` config for `GEMINI_API_KEY` | DONE | |
+| Prompt design (JSON-in/JSON-out) | DONE | |
+| Anti-hallucination constraints | DONE | |
+| Token budget awareness | DONE | Raw diffs capped at 3000 chars per file |
+| Token/cost telemetry estimates | DONE | Input/output token estimates + estimated USD |
 
-### 1.7 `bip summarize` Command
-
-| Task | Status | Notes |
-|------|--------|-------|
-| `src/commands/summarize.ts` | DONE | `bip summarize --commit <sha>` |
-| Load config, call git-parser, call LLM | DONE | Pipe DiffResult into prompt, print narrative to stdout |
-| Pretty-print output with chalk | DONE | Problem, solution, risk, testing notes in colored sections |
-| Save narrative JSON to `.bip/narratives/<sha>.json` | DONE | Auto-creates directory |
-
-### 1.8 `bip generate` Command
+### 1.7 `sushi summarize` Command
 
 | Task | Status | Notes |
 |------|--------|-------|
-| `src/commands/generate.ts` | DONE | `bip generate --commit <sha> [--save]` |
-| Platform-specific templates (`src/lib/templates.ts`) | DONE | X (tweet/thread, 280 char budget), LinkedIn (build-log format) |
-| Tone application from config | DONE | Technical / Professional / Casual tone styles |
-| Output drafts per platform to stdout | DONE | Labeled by platform, thread parts shown separately for X |
-| Optional: write drafts to `.bip/drafts/` as markdown | DONE | `--save` flag writes `<sha>-<platform>.md` files |
+| `src/commands/summarize.ts` | DONE | `sushi summarize --commit <sha>` |
+| Load config, parse diff, call LLM | DONE | |
+| Pretty-print output with chalk | DONE | |
+| Save narrative JSON to `.bip/narratives/<sha>.json` | DONE | |
+| Memory-aware context injection | DONE | Pulls relevant entries from `.bip/memory.json` |
+| Error reporting hooks | DONE | Logs command errors to telemetry stream |
 
-### 1.9 Local Draft Storage
+### 1.8 `sushi generate` Command
 
 | Task | Status | Notes |
 |------|--------|-------|
-| `.bip/drafts/` directory for saved drafts | DONE | Created by `bip generate --save` |
-| `.bip/narratives/` for raw LLM narrative JSON | DONE | Created by `bip summarize` and `bip generate --save` |
-| Narrative memory for referential continuity | TODO | Past summaries enable "Continuing last week's work on..." |
+| `src/commands/generate.ts` | DONE | `sushi generate --commit <sha> [--save]` |
+| Platform-specific templates (`src/lib/templates.ts`) | DONE | X + LinkedIn |
+| Tone application from config | DONE | Technical / Professional / Casual |
+| Output drafts per platform to stdout | DONE | |
+| Optional write drafts to `.bip/drafts/` as markdown | DONE | `--save` |
+| Memory writeback + telemetry logging | DONE | Updates memory and logs generation telemetry |
+| Dogfood-driven file-list truncation | DONE | Caps file list and adds `...and N more` suffix |
+
+### 1.9 Local Draft Storage + Narrative Memory
+
+| Task | Status | Notes |
+|------|--------|-------|
+| `.bip/drafts/` directory for saved drafts | DONE | |
+| `.bip/narratives/` for narrative JSON | DONE | |
+| `.bip/memory.json` continuity memory | DONE | Recent narratives used for context continuity |
+| `.bip/telemetry/events.jsonl` monitoring stream | DONE | Generation telemetry + command errors |
 
 ### 1.10 Testing
 
 | Task | Status | Notes |
 |------|--------|-------|
-| Vitest config and test scripts | DONE | `vitest.config.ts`, `npm test`, `npm run test:watch` |
-| `config.test.ts` -- loadConfig validation | DONE | 6 tests: valid config, missing file, malformed fields |
-| `git-parser.test.ts` -- parseRawPatch unit tests | DONE | 5 tests: single/multi file, empty, additions-only |
-| `templates.test.ts` -- renderDrafts output | DONE | 11 tests: platform selection, tone, threading, risk omission |
-| `llm.test.ts` -- prompt building and mocked API | DONE | 8 tests: metadata, constraints, JSON parsing, error handling |
+| Vitest config and test scripts | DONE | |
+| `config.test.ts` | DONE | Config validation coverage |
+| `git-parser.test.ts` | DONE | Raw patch parsing coverage |
+| `templates.test.ts` | DONE | Draft rendering coverage |
+| `llm.test.ts` | DONE | Prompting, JSON parsing, telemetry coverage |
+| `memory.test.ts` | DONE | Memory load/save/relevance coverage |
+| `phase2.test.ts` | DONE | GitHub payload parser + queue coverage |
 
 ### 1.11 Polish and Ship
 
 | Task | Status | Notes |
 |------|--------|-------|
-| Error handling across all commands | DONE | Missing config, missing API key, bad JSON, git errors |
-| `--help` text for every command and option | DONE | Commander auto-generates from descriptions |
-| README with install instructions and usage examples | TODO | |
-| Dogfood on own repos | TODO | Generate real posts, validate quality |
+| Error handling across commands | DONE | Missing config, API key, bad JSON, git/LLM failures |
+| `--help` text for commands/options | DONE | |
+| README install/usage examples | DONE | npx-first onboarding + PATH troubleshooting |
+| Dogfood on real repos | DONE | See `development/dogfooding-report.md` |
 
 ---
 
 ## Phase 2 -- "Engine": Webhooks + Visual Assets
 
-Multi-tenant web service with GitHub/GitLab integration, visual asset generation, and a draft management dashboard.
-
 ### 2.1 GitHub/GitLab Integration
 
 | Task | Status | Notes |
 |------|--------|-------|
-| Build GitHub App (OAuth + webhooks) | TODO | Subscribe to push and PR events |
-| Webhook receiver for push/PR/tag events | TODO | |
-| Fetch diffs via GitHub API (`GET /commits/:sha` with diff accept header) | TODO | |
-| GitLab support (commit diff API) | TODO | |
-| Store installation tokens securely | TODO | |
+| GitHub push payload parser | DONE | `src/lib/phase2/github.ts` |
+| Event enqueue from webhook payload | DONE | `sushi ingest-github --event-file ...` |
+| Webhook receiver HTTP service | TODO | Pending hosted endpoint with signature verification |
+| Fetch diffs via GitHub API in worker | TODO | Current worker uses local git path |
+| GitLab support | TODO | |
+| Secure installation token storage | TODO | |
 
 ### 2.2 Event Processing Pipeline
 
 | Task | Status | Notes |
 |------|--------|-------|
-| Event queue (RabbitMQ / SQS) | TODO | |
-| Worker: fetch diff, run narrative pipeline, call visual services | TODO | |
-| Diff Normalization Service | TODO | Structured schema: files, hunks, domain hints |
+| Event queue | DONE | Local JSONL queue in `.bip/engine/queue.jsonl` |
+| Worker command | DONE | `sushi run-worker [--once]` |
+| Worker pipeline (diff -> narrative -> drafts -> output) | DONE | `src/lib/phase2/worker.ts` |
+| Retry/DLQ semantics | TODO | |
+| Diff normalization service | TODO | |
 
 ### 2.3 Visual Asset Pipeline
 
 | Task | Status | Notes |
 |------|--------|-------|
-| Snippet renderer integration (Carbonara or Rayso-API) | TODO | Code diff -> aesthetic card PNG |
-| Snippet selection logic (most "interesting" hunk) | TODO | |
-| Progress dashboard generator (SVG -> PNG) | TODO | LOC added/removed, PRs merged, tests added |
+| Snippet renderer integration | TODO | |
+| Snippet selection logic | TODO | |
+| Progress dashboard generator | TODO | |
 | Screenshot layer via Playwright | TODO | |
 | Asset storage (S3 + CDN) | TODO | |
 
@@ -149,66 +160,17 @@ Multi-tenant web service with GitHub/GitLab integration, visual asset generation
 
 | Task | Status | Notes |
 |------|--------|-------|
-| API server (Node/TypeScript) | TODO | |
-| React frontend for browsing drafts and assets | TODO | |
-| Timeline: events this week, statuses (drafted/edited/posted) | TODO | |
-| Export: copy-to-clipboard, Typefully/Buffer integration | TODO | |
-| Weekly summary cron job | TODO | Week-in-review narrative + sharable card |
-
-### 2.5 Platform Output
-
-| Task | Status | Notes |
-|------|--------|-------|
-| X draft generation (auto-split threads) | TODO | No direct posting in Phase 2 |
-| LinkedIn draft generation (markdown format) | TODO | Copy-friendly, no auto-posting |
-| "Long-form devlog" output for blogs/Reddit | TODO | |
-| Platform-specific image sizing (X: 1200x675, LinkedIn: 1:1 or 4:5) | TODO | |
+| API server | TODO | |
+| React frontend | TODO | |
+| Timeline + statuses | TODO | |
+| Export integrations | TODO | |
+| Weekly summary cron | TODO | |
 
 ---
 
 ## Phase 3 -- "Agent": Slack/Discord Conversational Layer
 
-Conversational bot that interviews the developer for context and proposes drafts in-channel.
-
-### 3.1 Slack Integration
-
-| Task | Status | Notes |
-|------|--------|-------|
-| Slack app with slash commands (`/bip today`, `/bip recap`) | TODO | |
-| Event subscription for mentions | TODO | |
-| OAuth flow: link Slack user to BiP user | TODO | |
-
-### 3.2 Discord Integration
-
-| Task | Status | Notes |
-|------|--------|-------|
-| Discord bot with equivalent commands | TODO | |
-| OAuth flow | TODO | |
-
-### 3.3 Conversational Flows
-
-| Task | Status | Notes |
-|------|--------|-------|
-| Post-merge debrief script | TODO | "What was surprisingly hard about this change?" |
-| Weekly reflection script | TODO | "What did you learn this week?" |
-| Launch story generator script | TODO | |
-| Save responses as "human flavor" snippets | TODO | Injected into future LLM prompts |
-
-### 3.4 Voice Modeling
-
-| Task | Status | Notes |
-|------|--------|-------|
-| Import existing X/LinkedIn posts (CSV or paste) | TODO | |
-| Extract voice patterns (sentence length, phrases, formality, emoji) | TODO | |
-| Use patterns as LLM conditioning examples | TODO | |
-| Show "what we learned about your voice" summary | TODO | |
-
-### 3.5 Review and Approve in Slack/Discord
-
-| Task | Status | Notes |
-|------|--------|-------|
-| Bot posts generated drafts in-channel | TODO | 2 options per event |
-| Reactions/commands to approve, regenerate, tweak tone | TODO | |
+All listed work remains TODO.
 
 ---
 
@@ -216,43 +178,19 @@ Conversational bot that interviews the developer for context and proposes drafts
 
 | Area | Status | Notes |
 |------|--------|-------|
-| Never auto-post by default (human-in-the-loop) | DONE (by design) | Phase 1 is stdout/copy only |
-| Platform ToS compliance (X, LinkedIn, Reddit) | TODO | Warnings in-app, no unauthorized automation |
-| Anti-hallucination prompt constraints | DONE | Covered in LLM integration |
-| Token cost tracking per event | TODO | For future pricing/billing |
-| Monitoring and error reporting | TODO | |
+| Never auto-post by default (human-in-the-loop) | DONE | Draft-first by design |
+| Platform ToS compliance messaging | DONE | README + init policy reminder |
+| Anti-hallucination prompt constraints | DONE | |
+| Token cost tracking per event | DONE | Estimated telemetry logged per generation |
+| Monitoring and error reporting | DONE | JSONL telemetry stream for command errors + generation stats |
 
 ---
 
-## Current File Map
+## Current Key Artifacts
 
-```
-BiP/
-  package.json              # DONE -- bip-cli v0.1.0, all deps including @google/generative-ai
-  tsconfig.json             # DONE -- ES2022 / NodeNext / strict
-  vitest.config.ts          # DONE -- test config
-  .gitignore                # DONE
-  .env.example              # DONE -- documents GEMINI_API_KEY
-  src/
-    index.ts                # DONE -- CLI entry, registers init/summarize/generate, loads dotenv
-    commands/
-      init.ts               # DONE -- interactive config setup
-      summarize.ts          # DONE -- bip summarize --commit <sha>
-      generate.ts           # DONE -- bip generate --commit <sha> [--save]
-    lib/
-      git-parser.ts         # DONE -- parseDiff() + parseRawPatch() returns DiffResult
-      config.ts             # DONE -- loadConfig() with validation, shared BipConfig interface
-      llm.ts                # DONE -- Gemini 2.5 Flash client, buildPrompt(), generateNarrative()
-      templates.ts          # DONE -- renderDrafts() with X/LinkedIn templates, tone support
-    __tests__/
-      config.test.ts        # DONE -- 6 tests
-      git-parser.test.ts    # DONE -- 5 tests
-      templates.test.ts     # DONE -- 11 tests
-      llm.test.ts           # DONE -- 8 tests
-  .bip/                     # Created at runtime by bip init
-    config.yml              # Written by bip init
-    drafts/                 # Created by bip generate --save
-    narratives/             # Created by bip summarize / bip generate --save
-  development/
-    implementation.md       # This file
-```
+- `README.md` -- npx-first onboarding, PATH troubleshooting, policy section.
+- `development/dogfooding-report.md` -- real-repo dogfooding results and quality findings.
+- `development/phase2-architecture.md` -- Phase 2 flow, contracts, and next tickets.
+- `src/lib/memory.ts` -- continuity memory load/save/relevance.
+- `src/lib/monitoring.ts` -- telemetry and error logging hooks.
+- `src/lib/phase2/*` -- GitHub payload parser, queue, worker scaffolding.

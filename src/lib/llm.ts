@@ -9,13 +9,43 @@ export interface Narrative {
   testingNotes: string;
 }
 
-export function buildPrompt(diff: DiffResult, config: BipConfig): string {
+export interface LlmTelemetry {
+  model: string;
+  inputTokensEstimate: number;
+  outputTokensEstimate: number;
+  estimatedCostUsd: number;
+}
+
+const MODEL_NAME = "gemini-2.5-flash";
+const INPUT_COST_PER_MILLION = 0.3;
+const OUTPUT_COST_PER_MILLION = 2.5;
+
+function estimateTokens(text: string): number {
+  // Fast approximation for rough cost tracking.
+  return Math.max(1, Math.ceil(text.length / 4));
+}
+
+function estimateCostUsd(inputTokens: number, outputTokens: number): number {
+  const inputCost = (inputTokens / 1_000_000) * INPUT_COST_PER_MILLION;
+  const outputCost = (outputTokens / 1_000_000) * OUTPUT_COST_PER_MILLION;
+  return Number((inputCost + outputCost).toFixed(6));
+}
+
+export function buildPrompt(
+  diff: DiffResult,
+  config: BipConfig,
+  memoryContext = ""
+): string {
   const fileSummaries = diff.files
     .map(
       (f) =>
         `- **${f.filename}** (+${f.additions} / -${f.deletions})\n\`\`\`diff\n${f.rawDiff.slice(0, 3000)}\n\`\`\``
     )
     .join("\n\n");
+
+  const memorySection = memoryContext
+    ? `\n## Narrative Memory (Recent Context)\n${memoryContext}\n`
+    : "";
 
   return `You are a developer storytelling assistant. Analyze the following Git commit and produce a JSON object describing what changed and why.
 
@@ -27,6 +57,7 @@ export function buildPrompt(diff: DiffResult, config: BipConfig): string {
 
 ## Changed Files
 ${fileSummaries}
+${memorySection}
 
 ## Instructions
 1. Infer the **problem** this commit addresses from the commit message, file names, and code changes. If the purpose is unclear, say "Not explicitly stated, but likely..." rather than inventing a backstory.
@@ -50,10 +81,11 @@ Respond with ONLY a JSON object (no markdown fences, no extra text):
 }`;
 }
 
-export async function generateNarrative(
+export async function generateNarrativeWithTelemetry(
   diff: DiffResult,
-  config: BipConfig
-): Promise<Narrative> {
+  config: BipConfig,
+  memoryContext = ""
+): Promise<{ narrative: Narrative; telemetry: LlmTelemetry }> {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
     throw new Error(
@@ -63,13 +95,13 @@ export async function generateNarrative(
 
   const genAI = new GoogleGenerativeAI(apiKey);
   const model = genAI.getGenerativeModel({
-    model: "gemini-2.5-flash",
+    model: MODEL_NAME,
     generationConfig: {
       responseMimeType: "application/json",
     },
   });
 
-  const prompt = buildPrompt(diff, config);
+  const prompt = buildPrompt(diff, config, memoryContext);
   const result = await model.generateContent(prompt);
   const text = result.response.text();
 
@@ -83,10 +115,30 @@ export async function generateNarrative(
   }
 
   const obj = parsed as Record<string, unknown>;
-  return {
+  const narrative: Narrative = {
     problem: String(obj.problem ?? ""),
     solution: String(obj.solution ?? ""),
     risk: String(obj.risk ?? ""),
     testingNotes: String(obj.testingNotes ?? obj.testing_notes ?? ""),
   };
+
+  const inputTokensEstimate = estimateTokens(prompt);
+  const outputTokensEstimate = estimateTokens(text);
+  const telemetry: LlmTelemetry = {
+    model: MODEL_NAME,
+    inputTokensEstimate,
+    outputTokensEstimate,
+    estimatedCostUsd: estimateCostUsd(inputTokensEstimate, outputTokensEstimate),
+  };
+
+  return { narrative, telemetry };
+}
+
+export async function generateNarrative(
+  diff: DiffResult,
+  config: BipConfig,
+  memoryContext = ""
+): Promise<Narrative> {
+  const { narrative } = await generateNarrativeWithTelemetry(diff, config, memoryContext);
+  return narrative;
 }

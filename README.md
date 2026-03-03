@@ -101,6 +101,15 @@ npx @ayudb1304/sushi summarize --commit abc1234
 
 Prints the raw problem/solution/risk/testing-notes analysis and saves it as JSON to `.bip/narratives/`.
 
+### Narrative memory and telemetry
+
+Each successful `summarize` or `generate` run now stores continuity context in `.bip/memory.json`.
+Future generations reuse relevant prior entries to keep story continuity across commits.
+
+Sushi also writes lightweight generation telemetry and error events to:
+
+- `.bip/telemetry/events.jsonl`
+
 ## Commands
 
 | Command | Description |
@@ -108,6 +117,8 @@ Prints the raw problem/solution/risk/testing-notes analysis and saves it as JSON
 | `npx @ayudb1304/sushi init` | Interactive setup -- creates `.bip/config.yml` |
 | `npx @ayudb1304/sushi summarize --commit <sha>` | Analyze a commit, print the narrative |
 | `npx @ayudb1304/sushi generate --commit <sha> [--save]` | Generate X + LinkedIn drafts from a commit |
+| `npx @ayudb1304/sushi ingest-github --event-file <path> [--repo-path <path>]` | Queue GitHub push webhook commits for processing |
+| `npx @ayudb1304/sushi run-worker [--once]` | Process queued events and write outputs to `.bip/engine/outputs/` |
 
 ## PATH troubleshooting (global install users)
 
@@ -150,6 +161,12 @@ git commit --> sushi extracts diff --> Gemini analyzes changes --> platform draf
 
 Sushi never auto-posts. You review, edit, and post on your own terms.
 
+## Platform safety and policy
+
+- Sushi is draft-first and human-in-the-loop: it does not auto-post by default.
+- You remain responsible for platform policies for X, LinkedIn, Reddit, and any other channel.
+- Recommended flow: generate drafts in Sushi, review/edit, then post manually or via approved publishing tools.
+
 ## Requirements
 
 - Node.js >= 18
@@ -162,7 +179,7 @@ Sushi never auto-posts. You review, edit, and post on your own terms.
 git clone https://github.com/ayudb1304-wq/bip-cli.git
 cd bip-cli
 npm install
-npm test        # 30 tests across 4 suites
+npm test
 npm run dev -- generate --commit HEAD
 ```
 

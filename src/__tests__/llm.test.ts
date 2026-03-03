@@ -1,5 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { buildPrompt, generateNarrative } from "../lib/llm.js";
+import {
+  buildPrompt,
+  generateNarrative,
+  generateNarrativeWithTelemetry,
+} from "../lib/llm.js";
 import type { DiffResult } from "../lib/git-parser.js";
 import type { BipConfig } from "../lib/config.js";
 
@@ -54,6 +58,16 @@ describe("buildPrompt", () => {
   it("includes tone from config", () => {
     const prompt = buildPrompt(makeDiff(), makeConfig());
     expect(prompt).toContain("technical");
+  });
+
+  it("includes narrative memory when provided", () => {
+    const prompt = buildPrompt(
+      makeDiff(),
+      makeConfig(),
+      "- [abc12345] Previous work\n  Problem: Something broke\n  Solution: We fixed it"
+    );
+    expect(prompt).toContain("Narrative Memory");
+    expect(prompt).toContain("Previous work");
   });
 
   it("requests JSON output format", () => {
@@ -133,6 +147,31 @@ describe("generateNarrative", () => {
     await expect(generateNarrative(makeDiff(), makeConfig())).rejects.toThrow(
       "invalid JSON"
     );
+
+    delete process.env.GEMINI_API_KEY;
+  });
+
+  it("returns telemetry estimates", async () => {
+    process.env.GEMINI_API_KEY = "test-key";
+
+    const { GoogleGenerativeAI } = await import("@google/generative-ai");
+
+    vi.spyOn(
+      GoogleGenerativeAI.prototype,
+      "getGenerativeModel"
+    ).mockReturnValue({
+      generateContent: vi.fn().mockResolvedValue({
+        response: {
+          text: () => JSON.stringify(mockResponse),
+        },
+      }),
+    } as any);
+
+    const result = await generateNarrativeWithTelemetry(makeDiff(), makeConfig());
+    expect(result.telemetry.model).toBe("gemini-2.5-flash");
+    expect(result.telemetry.inputTokensEstimate).toBeGreaterThan(0);
+    expect(result.telemetry.outputTokensEstimate).toBeGreaterThan(0);
+    expect(result.telemetry.estimatedCostUsd).toBeGreaterThan(0);
 
     delete process.env.GEMINI_API_KEY;
   });

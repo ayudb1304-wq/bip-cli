@@ -97,4 +97,9 @@ export const initCommand = new Command("init")
     console.log(
       chalk.green("✔") + " BiP initialized successfully! Config written to .bip/config.yml"
     );
+    console.log(
+      chalk.dim(
+        "Policy reminder: Sushi generates drafts only. Review and post manually, and follow platform rules (X, LinkedIn, Reddit)."
+      )
+    );
   });

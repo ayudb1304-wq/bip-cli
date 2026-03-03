@@ -5,7 +5,7 @@
   "type": "module",
   "main": "./dist/index.js",
   "bin": {
-    "sushi": "./dist/index.js"
+    "sushi": "dist/index.js"
   },
   "files": [
     "dist/index.*",
@@ -16,7 +16,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/ayudb1304-wq/bip-cli.git"
+    "url": "git+https://github.com/ayudb1304-wq/bip-cli.git"
   },
   "homepage": "https://github.com/ayudb1304-wq/bip-cli#readme",
   "scripts": {

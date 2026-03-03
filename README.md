@@ -6,7 +6,7 @@ Turn your Git commits into ready-to-post social media content. BiP analyzes your
 
 Using Cursor, Windsurf, or another AI-powered IDE? Paste this prompt into your agent and it will handle everything:
 
-> Install bip-cli globally with `npm install -g bip-cli`. Then create a `.env` file
+> Install bipcli globally with `npm install -g bipcli`. Then create a `.env` file
 > in my project root with `GEMINI_API_KEY=<my-key>` (ask me for the key if I haven't
 > provided it). Then run `bip init` to set up the config -- use my git username as the
 > name, select both X and LinkedIn, and pick Casual tone. Finally, run
@@ -19,13 +19,13 @@ That's it -- you'll have X and LinkedIn drafts in `.bip/drafts/` within a minute
 ## Install (manual)
 
 ```bash
-npm install -g bip-cli
+npm install -g bipcli
 ```
 
 Or run directly without installing:
 
 ```bash
-npx bip-cli generate --commit HEAD
+npx bipcli generate --commit HEAD
 ```
 
 ## Setup (one time)
@@ -113,8 +113,8 @@ BiP never auto-posts. You review, edit, and post on your own terms.
 ## Contributing
 
 ```bash
-git clone https://github.com/ayudb1304-wq/bip-cli.git
-cd bip-cli
+git clone https://github.com/ayudb1304-wq/bipcli.git
+cd bipcli
 npm install
 npm test        # 30 tests across 4 suites
 npm run dev -- generate --commit HEAD

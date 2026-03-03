@@ -1,5 +1,5 @@
 {
-  "name": "bip-cli",
+  "name": "bipcli",
   "version": "0.1.0",
   "description": "Build-in-Public Content Engine — transforms Git diffs into platform-specific social media drafts",
   "type": "module",

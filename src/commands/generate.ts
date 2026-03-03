@@ -82,6 +82,14 @@ export const generateCommand = new Command("generate")
         )
       );
     } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      if (message.includes("GEMINI_API_KEY") || message.includes(".bip/config.yml")) {
+        console.log(
+          chalk.cyan(
+            "Tip: run `npx @ayudb1304/sushi quickstart` first for guided setup and an instant demo."
+          )
+        );
+      }
       reportCommandError("generate", error);
       throw error;
     }

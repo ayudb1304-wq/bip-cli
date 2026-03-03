@@ -10,6 +10,8 @@ import { runWorkerCommand } from "./commands/run-worker.js";
 import { serveWebhooksCommand } from "./commands/serve-webhooks.js";
 import { serveDashboardCommand } from "./commands/serve-dashboard.js";
 import { runWeeklySummaryCommand } from "./commands/run-weekly-summary.js";
+import { quickstartCommand } from "./commands/quickstart.js";
+import { doctorCommand } from "./commands/doctor.js";
 
 const program = new Command();
 
@@ -28,5 +30,7 @@ program.addCommand(runWorkerCommand);
 program.addCommand(serveWebhooksCommand);
 program.addCommand(serveDashboardCommand);
 program.addCommand(runWeeklySummaryCommand);
+program.addCommand(quickstartCommand);
+program.addCommand(doctorCommand);
 
 program.parse();

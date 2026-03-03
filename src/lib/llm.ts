@@ -102,7 +102,7 @@ export async function generateNarrativeWithTelemetry(
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
     throw new Error(
-      "GEMINI_API_KEY is not set. Add it to your .env file or export it as an environment variable."
+      "GEMINI_API_KEY is not set. Run `npx @ayudb1304/sushi quickstart` for demo mode, or add GEMINI_API_KEY to your .env file for real AI drafts."
     );
   }
 

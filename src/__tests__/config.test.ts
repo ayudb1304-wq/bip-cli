@@ -36,7 +36,7 @@ describe("loadConfig", () => {
   });
 
   it("throws when .bip/config.yml is missing", () => {
-    expect(() => loadConfig(tmpDir)).toThrow("Run `sushi init` or `npx @ayudb1304/sushi init` first");
+    expect(() => loadConfig(tmpDir)).toThrow("Run `npx @ayudb1304/sushi quickstart`");
   });
 
   it("throws when config is missing required fields", () => {

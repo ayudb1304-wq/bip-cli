@@ -1,134 +1,83 @@
 # Sushi -- Build-in-Public Content Engine
 
-Turn your Git commits into ready-to-post social media content. Sushi analyzes your diffs with AI and generates drafts for X/Twitter and LinkedIn -- so you can build in public without the context-switching.
+Turn your Git commits into ready-to-post social media drafts. Sushi reads your code changes and helps you share progress on X and LinkedIn without writing from scratch.
 
-## Quick Start (AI IDE users)
+## Start Here (30 seconds)
 
-Using Cursor, Windsurf, or another AI-powered IDE? Paste this prompt into your agent and it will handle everything:
-
-> Use `npx @ayudb1304/sushi` for all Sushi commands (do not install globally).
-> Create a `.env` file in my project root with `GEMINI_API_KEY=<my-key>` (ask me for
-> the key if I haven't provided it). Then run `npx @ayudb1304/sushi init` to set up
-> the config -- use my git username as the name, select both X and LinkedIn, and keep
-> Casual tone. Finally, run
-> `npx @ayudb1304/sushi generate --commit HEAD --save` to generate social media drafts
-> for my latest commit.
-
-That's it -- you'll have X and LinkedIn drafts in `.bip/drafts/` within a minute.
-
----
-
-## Install (manual)
-
-Run directly without installing (recommended):
+No API key required for first success.
 
 ```bash
-npx @ayudb1304/sushi generate --commit HEAD
+npx @ayudb1304/sushi quickstart
 ```
 
-Optional: install globally for a shorter command:
+What this does:
+- creates `.bip/config.yml` with beginner defaults if missing
+- generates demo drafts instantly (local mode)
+- saves drafts to `.bip/drafts/`
+- tells you the exact next step for real AI drafts
 
-```bash
-npm install -g @ayudb1304/sushi
-```
+## Step 2: Get Real AI Drafts
 
-Then use:
+1. Create a free Gemini key: [aistudio.google.com/apikey](https://aistudio.google.com/apikey)
+2. In your project root, add a `.env` file:
 
-```bash
-sushi generate --commit HEAD
-```
-
-If global install succeeds but `sushi` is not found, see [PATH troubleshooting](#path-troubleshooting-global-install-users).
-
-## Setup (one time)
-
-### 1. Get a free Gemini API key
-
-Go to [aistudio.google.com/apikey](https://aistudio.google.com/apikey) and create one. Sushi uses your own key -- we never see or store it.
-
-### 2. Set the key in your environment
-
-```bash
-export GEMINI_API_KEY="your-key-here"
-```
-
-Or create a `.env` file in the repo where you run Sushi:
-
-```
+```env
 GEMINI_API_KEY=your-key-here
 ```
 
-### 3. Initialize Sushi in your project
+3. Run quickstart again:
 
 ```bash
-cd your-project
-npx @ayudb1304/sushi init
+npx @ayudb1304/sushi quickstart
 ```
 
-This prompts for your name, platforms (X, LinkedIn), and preferred tone (Technical, Professional, Casual), then saves the config to `.bip/config.yml`.
-The default tone is Casual for more human-sounding drafts.
+## Everyday Usage
 
-If you installed globally and your shell can resolve `sushi`, you can run:
+Generate drafts from your latest commit:
 
 ```bash
-sushi init
+npx @ayudb1304/sushi generate --commit HEAD --save
 ```
 
-## Usage
+If `HEAD` is unfamiliar, it just means "your latest commit in this repo."
 
-### Generate social media drafts from a commit
+Just get the narrative summary:
 
 ```bash
-npx @ayudb1304/sushi generate --commit HEAD
+npx @ayudb1304/sushi summarize --commit HEAD
 ```
 
-This analyzes the commit, calls Gemini to understand what changed and why, then prints platform-specific drafts to your terminal:
-
-- **X/Twitter** -- a concise tweet or auto-threaded post (stays under 280 chars per part)
-- **LinkedIn** -- a build-log format with problem, solution, risks, and your name
-
-Add `--save` to write the drafts as markdown files:
+Run setup diagnostics:
 
 ```bash
-npx @ayudb1304/sushi generate --commit abc1234 --save
-# Saves to .bip/drafts/abc1234-x.md and .bip/drafts/abc1234-linkedin.md
+npx @ayudb1304/sushi doctor
 ```
 
-### Just get the narrative (no social drafts)
+## Clone-Repo Setup (optional)
+
+If you cloned this repo and want local scripts:
 
 ```bash
-npx @ayudb1304/sushi summarize --commit abc1234
+npm run setup
+npm run quickstart
 ```
-
-Prints the raw problem/solution/risk/testing-notes analysis and saves it as JSON to `.bip/narratives/`.
-
-### Narrative memory and telemetry
-
-Each successful `summarize` or `generate` run now stores continuity context in `.bip/memory.json`.
-Future generations reuse relevant prior entries to keep story continuity across commits.
-
-Sushi also writes lightweight generation telemetry and error events to:
-
-- `.bip/telemetry/events.jsonl`
-
-Sushi keeps generated posts concise by default:
-
-- no "files touched" section in final social drafts
-- plain language, casual voice by default
-- no em dashes in rendered output
 
 ## Commands
 
 | Command | Description |
 |---------|-------------|
-| `npx @ayudb1304/sushi init` | Interactive setup -- creates `.bip/config.yml` |
-| `npx @ayudb1304/sushi summarize --commit <sha>` | Analyze a commit, print the narrative |
+| `npx @ayudb1304/sushi quickstart` | One-command onboarding (demo-first, real mode when key exists) |
+| `npx @ayudb1304/sushi doctor` | Check Node, Git, config, and Gemini key readiness |
+| `npx @ayudb1304/sushi init` | Interactive setup for custom profile/platform/tone |
+| `npx @ayudb1304/sushi summarize --commit <sha>` | Analyze a commit and print narrative |
 | `npx @ayudb1304/sushi generate --commit <sha> [--save]` | Generate X + LinkedIn drafts from a commit |
 | `npx @ayudb1304/sushi ingest-github --event-file <path> [--repo-path <path>]` | Queue GitHub push webhook commits for processing |
 | `npx @ayudb1304/sushi run-worker [--once]` | Process queued events and write outputs to `.bip/engine/outputs/` |
 | `npx @ayudb1304/sushi serve-webhooks [--port 8787] [--host 0.0.0.0]` | Run GitHub webhook receiver (`POST /webhooks/github`) with signature verification |
 | `npx @ayudb1304/sushi serve-dashboard [--port 8788] [--host 0.0.0.0]` | Run dashboard API + timeline UI |
 | `npx @ayudb1304/sushi run-weekly-summary [--once] [--interval-hours 168]` | Generate weekly summary markdown on schedule |
+
+## Advanced Setup
 
 ## Phase 2 Engine setup
 

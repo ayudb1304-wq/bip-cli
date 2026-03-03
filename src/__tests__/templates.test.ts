@@ -75,32 +75,46 @@ describe("renderDrafts", () => {
     expect(xDraft.content).toContain("token TTL");
   });
 
-  it("X draft includes #buildinpublic hashtag", () => {
-    const drafts = renderDrafts(makeNarrative(), makeDiff(), makeConfig());
-    const xDraft = drafts.find((d) => d.platform === "x")!;
-    expect(xDraft.content).toContain("#buildinpublic");
+  it("ensures each X thread part is within 280 characters", () => {
+    const narrative = makeNarrative({
+      problem:
+        "Auth tokens expired too quickly on mobile clients during unstable network retries, which broke login continuity for users in transit and made sessions feel unreliable.",
+      solution:
+        "Increased token TTL from 5 to 15 minutes, added retry logic with clearer fallback handling, and tightened guard clauses around stale refresh payloads to keep auth behavior stable under jitter.",
+      risk:
+        "Longer TTL increases the window for token misuse if a token is leaked, so monitoring and revocation paths should stay sharp while this ships.",
+      testingNotes:
+        "Verify mobile login and refresh flows under flaky network conditions, retry storms, and expired token paths to confirm no regressions in auth state transitions.",
+    });
+
+    const drafts = renderDrafts(narrative, makeDiff(), makeConfig({ platforms: ["x"] }));
+    const xDraft = drafts[0];
+    expect(xDraft.threadParts && xDraft.threadParts.length > 0).toBe(true);
+    for (const part of xDraft.threadParts ?? []) {
+      expect(part.length).toBeLessThanOrEqual(280);
+    }
   });
 
   it("LinkedIn draft includes build log header and author name", () => {
     const drafts = renderDrafts(makeNarrative(), makeDiff(), makeConfig());
     const liDraft = drafts.find((d) => d.platform === "linkedin")!;
-    expect(liDraft.content).toContain("Build Log");
+    expect(liDraft.content).toContain("## Build Update");
     expect(liDraft.content).toContain("Ayush");
-    expect(liDraft.content).toContain("The Problem");
-    expect(liDraft.content).toContain("What Changed");
+    expect(liDraft.content).toContain("## Milestones");
+    expect(liDraft.content).toContain("## Validation");
   });
 
-  it("LinkedIn draft includes risk section when risk is meaningful", () => {
+  it("LinkedIn draft includes risk line when risk is meaningful", () => {
     const drafts = renderDrafts(makeNarrative(), makeDiff(), makeConfig());
     const liDraft = drafts.find((d) => d.platform === "linkedin")!;
-    expect(liDraft.content).toContain("Risks & Tradeoffs");
+    expect(liDraft.content).toContain("## Risks and Follow-up");
   });
 
-  it("LinkedIn draft omits risk section when risk is 'No obvious risks.'", () => {
+  it("LinkedIn draft omits risk line when risk is 'No obvious risks.'", () => {
     const narrative = makeNarrative({ risk: "No obvious risks." });
     const drafts = renderDrafts(narrative, makeDiff(), makeConfig());
     const liDraft = drafts.find((d) => d.platform === "linkedin")!;
-    expect(liDraft.content).not.toContain("Risks & Tradeoffs");
+    expect(liDraft.content).not.toContain("One risk:");
   });
 
   it("applies casual tone to X draft", () => {
@@ -110,7 +124,7 @@ describe("renderDrafts", () => {
       makeConfig({ tone: "casual" })
     );
     const xDraft = drafts.find((d) => d.platform === "x")!;
-    expect(xDraft.content).toContain("So I ran into this:");
+    expect(xDraft.content).toContain("Ran into this today:");
   });
 
   it("applies professional tone to X draft", () => {
@@ -120,7 +134,7 @@ describe("renderDrafts", () => {
       makeConfig({ tone: "professional" })
     );
     const xDraft = drafts.find((d) => d.platform === "x")!;
-    expect(xDraft.content).toContain("Identified an issue:");
+    expect(xDraft.content).toContain("I ran into this:");
   });
 
   it("skips unknown platforms gracefully", () => {
@@ -132,7 +146,7 @@ describe("renderDrafts", () => {
     expect(drafts).toEqual([]);
   });
 
-  it("truncates very large file lists with a summary suffix", () => {
+  it("does not include files touched line in linkedin draft", () => {
     const manyFiles = Array.from({ length: 12 }, (_, i) => ({
       filename: `src/file-${i}.ts`,
       additions: i + 1,
@@ -146,6 +160,26 @@ describe("renderDrafts", () => {
       makeConfig({ platforms: ["linkedin"] })
     );
     const liDraft = drafts[0];
-    expect(liDraft.content).toContain("...and 4 more file(s)");
+    expect(liDraft.content).not.toContain("Files touched:");
+  });
+
+  it("keeps linkedin draft within 300-400 words", () => {
+    const drafts = renderDrafts(
+      makeNarrative(),
+      makeDiff(),
+      makeConfig({ platforms: ["linkedin"] })
+    );
+    const words = drafts[0].content.trim().split(/\s+/).length;
+    expect(words).toBeGreaterThanOrEqual(300);
+    expect(words).toBeLessThanOrEqual(400);
+  });
+
+  it("removes em dashes from output", () => {
+    const drafts = renderDrafts(
+      makeNarrative({ solution: "Updated auth flow — no downtime rollout." }),
+      makeDiff(),
+      makeConfig({ platforms: ["linkedin"] })
+    );
+    expect(drafts[0].content).not.toContain("—");
   });
 });

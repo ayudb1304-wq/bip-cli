@@ -52,7 +52,8 @@ describe("buildPrompt", () => {
     const prompt = buildPrompt(makeDiff(), makeConfig());
     expect(prompt).toContain("ONLY reference");
     expect(prompt).toContain("Do NOT invent");
-    expect(prompt).toContain("unclear");
+    expect(prompt).toContain("Likely...");
+    expect(prompt).toContain("No em dashes");
   });
 
   it("includes tone from config", () => {

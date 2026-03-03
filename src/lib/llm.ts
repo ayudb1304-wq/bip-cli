@@ -19,6 +19,8 @@ export interface LlmTelemetry {
 const MODEL_NAME = "gemini-2.5-flash";
 const INPUT_COST_PER_MILLION = 0.3;
 const OUTPUT_COST_PER_MILLION = 2.5;
+const MAX_PROMPT_FILES = 6;
+const MAX_DIFF_CHARS_PER_FILE = 1200;
 
 function estimateTokens(text: string): number {
   // Fast approximation for rough cost tracking.
@@ -36,12 +38,18 @@ export function buildPrompt(
   config: BipConfig,
   memoryContext = ""
 ): string {
-  const fileSummaries = diff.files
+  const selectedFiles = diff.files.slice(0, MAX_PROMPT_FILES);
+  const omittedFiles = diff.files.length - selectedFiles.length;
+  const fileSummaries = selectedFiles
     .map(
       (f) =>
-        `- **${f.filename}** (+${f.additions} / -${f.deletions})\n\`\`\`diff\n${f.rawDiff.slice(0, 3000)}\n\`\`\``
+        `- **${f.filename}** (+${f.additions} / -${f.deletions})\n\`\`\`diff\n${f.rawDiff.slice(0, MAX_DIFF_CHARS_PER_FILE)}\n\`\`\``
     )
     .join("\n\n");
+  const omittedFilesNote =
+    omittedFiles > 0
+      ? `\n- Additional changed files omitted for token budget: ${omittedFiles}`
+      : "";
 
   const memorySection = memoryContext
     ? `\n## Narrative Memory (Recent Context)\n${memoryContext}\n`
@@ -57,19 +65,24 @@ export function buildPrompt(
 
 ## Changed Files
 ${fileSummaries}
+${omittedFilesNote}
 ${memorySection}
 
 ## Instructions
-1. Infer the **problem** this commit addresses from the commit message, file names, and code changes. If the purpose is unclear, say "Not explicitly stated, but likely..." rather than inventing a backstory.
-2. Describe the **solution** in terms of user/system impact and the specific code changes made.
-3. Identify any **risks** introduced by this change (e.g., breaking changes, missing error handling, performance concerns). If none are apparent, say "No obvious risks."
-4. Suggest **testing notes** — what should be tested or verified to confirm this change works correctly.
+1. Infer the **problem** this commit addresses from the commit message, file names, and code changes. If the purpose is unclear, say "Likely..." and be explicit about uncertainty.
+2. Describe the **solution** in plain language, grounded in the actual code changes.
+3. Identify **risk** in one concise line. If there is no clear risk, say "No obvious risks."
+4. Suggest **testing notes** in one concise line.
 
 ## Constraints
 - You may ONLY reference files, functions, and entities present in the diff above.
 - Do NOT invent features, metrics, user counts, or revenue figures.
 - Do NOT mention technologies or components that are not visible in the context.
-- Keep the developer's preferred tone in mind: **${config.tone}**.
+- Keep the developer's preferred tone in mind: **${config.tone}** (default to casual and human sounding).
+- Keep language natural and personal, without AI buzzwords or hype.
+- No em dashes.
+- Keep each field under 35 words.
+- Keep total JSON text under 140 words.
 
 ## Required Output Format
 Respond with ONLY a JSON object (no markdown fences, no extra text):

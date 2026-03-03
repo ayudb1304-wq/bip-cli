@@ -9,8 +9,8 @@ Using Cursor, Windsurf, or another AI-powered IDE? Paste this prompt into your a
 > Use `npx @ayudb1304/sushi` for all Sushi commands (do not install globally).
 > Create a `.env` file in my project root with `GEMINI_API_KEY=<my-key>` (ask me for
 > the key if I haven't provided it). Then run `npx @ayudb1304/sushi init` to set up
-> the config -- use my git username as the name, select both X and LinkedIn, and pick
-> Technical tone. Finally, run
+> the config -- use my git username as the name, select both X and LinkedIn, and keep
+> Casual tone. Finally, run
 > `npx @ayudb1304/sushi generate --commit HEAD --save` to generate social media drafts
 > for my latest commit.
 
@@ -66,6 +66,7 @@ npx @ayudb1304/sushi init
 ```
 
 This prompts for your name, platforms (X, LinkedIn), and preferred tone (Technical, Professional, Casual), then saves the config to `.bip/config.yml`.
+The default tone is Casual for more human-sounding drafts.
 
 If you installed globally and your shell can resolve `sushi`, you can run:
 
@@ -109,6 +110,12 @@ Future generations reuse relevant prior entries to keep story continuity across 
 Sushi also writes lightweight generation telemetry and error events to:
 
 - `.bip/telemetry/events.jsonl`
+
+Sushi keeps generated posts concise by default:
+
+- no "files touched" section in final social drafts
+- plain language, casual voice by default
+- no em dashes in rendered output
 
 ## Commands
 

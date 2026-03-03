@@ -81,7 +81,7 @@ export const initCommand = new Command("init")
         name: "tone",
         message: "Preferred tone:",
         choices: ["Technical", "Professional", "Casual"],
-        default: "Technical",
+        default: "Casual",
       },
     ]);
 

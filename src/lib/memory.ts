@@ -70,7 +70,7 @@ export function saveNarrativeMemoryEntry(
 export function buildMemoryContext(
   diff: DiffResult,
   entries: NarrativeMemoryEntry[],
-  maxEntries = 3
+  maxEntries = 2
 ): string {
   if (entries.length === 0) return "";
 
@@ -95,10 +95,13 @@ export function buildMemoryContext(
 
   if (fallback.length === 0) return "";
 
+  const compact = (value: string, maxLen = 90): string =>
+    value.length > maxLen ? `${value.slice(0, maxLen - 3)}...` : value;
+
   return fallback
     .map((entry) => {
       const shortSha = entry.commitSha.slice(0, 8);
-      return `- [${shortSha}] ${entry.message}\n  Problem: ${entry.problem}\n  Solution: ${entry.solution}`;
+      return `- [${shortSha}] ${compact(entry.message)}\n  Problem: ${compact(entry.problem)}\n  Solution: ${compact(entry.solution)}`;
     })
     .join("\n");
 }

@@ -1,16 +1,17 @@
-# BiP -- Build-in-Public Content Engine
+# Sushi -- Build-in-Public Content Engine
 
-Turn your Git commits into ready-to-post social media content. BiP analyzes your diffs with AI and generates drafts for X/Twitter and LinkedIn -- so you can build in public without the context-switching.
+Turn your Git commits into ready-to-post social media content. Sushi analyzes your diffs with AI and generates drafts for X/Twitter and LinkedIn -- so you can build in public without the context-switching.
 
 ## Quick Start (AI IDE users)
 
 Using Cursor, Windsurf, or another AI-powered IDE? Paste this prompt into your agent and it will handle everything:
 
-> Install bipcli globally with `npm install -g @ayudb1304/bipcli`. Then create a `.env` file
-> in my project root with `GEMINI_API_KEY=<my-key>` (ask me for the key if I haven't
-> provided it). Then run `bip init` to set up the config -- use my git username as the
-> name, select both X and LinkedIn, and pick Casual tone. Finally, run
-> `bip generate --commit HEAD --save` to generate social media drafts for my latest commit.
+> Install sushi globally with `npm install -g @ayudb1304/sushi`. Then create a `.env`
+> file in my project root with `GEMINI_API_KEY=<my-key>` (ask me for the key if I
+> haven't provided it). Then run `sushi init` to set up the config -- use my git
+> username as the name, select both X and LinkedIn, and pick Technical tone. Finally,
+> run `sushi generate --commit HEAD --save` to generate social media drafts for my
+> latest commit.
 
 That's it -- you'll have X and LinkedIn drafts in `.bip/drafts/` within a minute.
 
@@ -19,20 +20,20 @@ That's it -- you'll have X and LinkedIn drafts in `.bip/drafts/` within a minute
 ## Install (manual)
 
 ```bash
-npm install -g @ayudb1304/bipcli
+npm install -g @ayudb1304/sushi
 ```
 
 Or run directly without installing:
 
 ```bash
-npx @ayudb1304/bipcli generate --commit HEAD
+npx @ayudb1304/sushi generate --commit HEAD
 ```
 
 ## Setup (one time)
 
 ### 1. Get a free Gemini API key
 
-Go to [aistudio.google.com/apikey](https://aistudio.google.com/apikey) and create one. BiP uses your own key -- we never see or store it.
+Go to [aistudio.google.com/apikey](https://aistudio.google.com/apikey) and create one. Sushi uses your own key -- we never see or store it.
 
 ### 2. Set the key in your environment
 
@@ -40,17 +41,17 @@ Go to [aistudio.google.com/apikey](https://aistudio.google.com/apikey) and creat
 export GEMINI_API_KEY="your-key-here"
 ```
 
-Or create a `.env` file in the repo where you run BiP:
+Or create a `.env` file in the repo where you run Sushi:
 
 ```
 GEMINI_API_KEY=your-key-here
 ```
 
-### 3. Initialize BiP in your project
+### 3. Initialize Sushi in your project
 
 ```bash
 cd your-project
-bip init
+sushi init
 ```
 
 This prompts for your name, platforms (X, LinkedIn), and preferred tone (Technical, Professional, Casual), then saves the config to `.bip/config.yml`.
@@ -60,7 +61,7 @@ This prompts for your name, platforms (X, LinkedIn), and preferred tone (Technic
 ### Generate social media drafts from a commit
 
 ```bash
-bip generate --commit HEAD
+sushi generate --commit HEAD
 ```
 
 This analyzes the commit, calls Gemini to understand what changed and why, then prints platform-specific drafts to your terminal:
@@ -71,14 +72,14 @@ This analyzes the commit, calls Gemini to understand what changed and why, then 
 Add `--save` to write the drafts as markdown files:
 
 ```bash
-bip generate --commit abc1234 --save
+sushi generate --commit abc1234 --save
 # Saves to .bip/drafts/abc1234-x.md and .bip/drafts/abc1234-linkedin.md
 ```
 
 ### Just get the narrative (no social drafts)
 
 ```bash
-bip summarize --commit abc1234
+sushi summarize --commit abc1234
 ```
 
 Prints the raw problem/solution/risk/testing-notes analysis and saves it as JSON to `.bip/narratives/`.
@@ -87,14 +88,14 @@ Prints the raw problem/solution/risk/testing-notes analysis and saves it as JSON
 
 | Command | Description |
 |---------|-------------|
-| `bip init` | Interactive setup -- creates `.bip/config.yml` |
-| `bip summarize --commit <sha>` | Analyze a commit, print the narrative |
-| `bip generate --commit <sha> [--save]` | Generate X + LinkedIn drafts from a commit |
+| `sushi init` | Interactive setup -- creates `.bip/config.yml` |
+| `sushi summarize --commit <sha>` | Analyze a commit, print the narrative |
+| `sushi generate --commit <sha> [--save]` | Generate X + LinkedIn drafts from a commit |
 
 ## How it works
 
 ```
-git commit --> bip extracts diff --> Gemini analyzes changes --> platform drafts
+git commit --> sushi extracts diff --> Gemini analyzes changes --> platform drafts
 ```
 
 1. **Parses** the commit diff (files changed, additions, deletions, raw patches)
@@ -102,7 +103,7 @@ git commit --> bip extracts diff --> Gemini analyzes changes --> platform drafts
 3. **Generates** a problem/solution narrative grounded in the actual code changes
 4. **Renders** platform-specific drafts using your configured tone
 
-BiP never auto-posts. You review, edit, and post on your own terms.
+Sushi never auto-posts. You review, edit, and post on your own terms.
 
 ## Requirements
 
@@ -113,8 +114,8 @@ BiP never auto-posts. You review, edit, and post on your own terms.
 ## Contributing
 
 ```bash
-git clone https://github.com/ayudb1304-wq/bipcli.git
-cd bipcli
+git clone https://github.com/ayudb1304-wq/bip-cli.git
+cd bip-cli
 npm install
 npm test        # 30 tests across 4 suites
 npm run dev -- generate --commit HEAD

@@ -14,7 +14,7 @@ export function loadConfig(cwd?: string): BipConfig {
 
   if (!fs.existsSync(configPath)) {
     throw new Error(
-      "No .bip/config.yml found. Run `bip init` first."
+      "No .bip/config.yml found. Run `sushi init` first."
     );
   }
 

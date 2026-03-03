@@ -9,7 +9,7 @@ import { generateCommand } from "./commands/generate.js";
 const program = new Command();
 
 program
-  .name("bip")
+  .name("sushi")
   .version("0.1.0")
   .description(
     "Build-in-Public Content Engine — transform Git diffs into platform-specific social media drafts"

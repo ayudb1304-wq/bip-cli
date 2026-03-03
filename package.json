@@ -1,11 +1,11 @@
 {
-  "name": "@ayudb1304/bipcli",
+  "name": "@ayudb1304/sushi",
   "version": "0.1.0",
   "description": "Build-in-Public Content Engine — transforms Git diffs into platform-specific social media drafts",
   "type": "module",
   "main": "./dist/index.js",
   "bin": {
-    "bip": "./dist/index.js"
+    "sushi": "./dist/index.js"
   },
   "files": [
     "dist/index.*",

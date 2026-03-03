@@ -1,0 +1,98 @@
+import fs from "node:fs";
+import path from "node:path";
+import type { QueueRecord } from "./types.js";
+import { readQueueRecords, queueStats } from "./queue.js";
+
+export type DashboardTimelineItem = {
+  id: string;
+  commitSha: string;
+  repo: string;
+  status: "pending" | "processing" | "processed" | "failed";
+  occurredAt: string;
+  updatedAt: string;
+  retries: number;
+  outputPath?: string;
+  assets?: {
+    snippetCardUrl?: string;
+    progressDashboardUrl?: string;
+  };
+};
+
+type WorkerOutput = {
+  event: {
+    id: string;
+    commitSha: string;
+  };
+  assets?: {
+    snippetCardUrl?: string;
+    progressDashboardUrl?: string;
+  };
+};
+
+function getOutputsDir(cwd = process.cwd()): string {
+  return path.join(cwd, ".bip", "engine", "outputs");
+}
+
+export function listWorkerOutputs(cwd = process.cwd()): Array<{ path: string; parsed: WorkerOutput }> {
+  const dir = getOutputsDir(cwd);
+  if (!fs.existsSync(dir)) return [];
+  return fs
+    .readdirSync(dir)
+    .filter((name) => name.endsWith(".json"))
+    .map((name) => {
+      const absolute = path.join(dir, name);
+      const parsed = JSON.parse(fs.readFileSync(absolute, "utf-8")) as WorkerOutput;
+      return { path: absolute, parsed };
+    });
+}
+
+function toTimelineItem(
+  record: QueueRecord,
+  status: DashboardTimelineItem["status"],
+  outputsByEventId: Map<string, { path: string; parsed: WorkerOutput }>
+): DashboardTimelineItem {
+  const output = outputsByEventId.get(record.event.id);
+  return {
+    id: record.event.id,
+    commitSha: record.event.commitSha,
+    repo: record.event.repoFullName,
+    status,
+    occurredAt: record.event.occurredAt,
+    updatedAt: record.updatedAt,
+    retries: record.attempts,
+    outputPath: output?.path,
+    assets: output?.parsed.assets,
+  };
+}
+
+export function getTimeline(cwd = process.cwd()): DashboardTimelineItem[] {
+  const outputs = listWorkerOutputs(cwd);
+  const outputsByEventId = new Map(outputs.map((item) => [item.parsed.event.id, item]));
+
+  const pending = readQueueRecords("pending", cwd).map((record) =>
+    toTimelineItem(record, "pending", outputsByEventId)
+  );
+  const processing = readQueueRecords("processing", cwd).map((record) =>
+    toTimelineItem(record, "processing", outputsByEventId)
+  );
+  const processed = readQueueRecords("processed", cwd).map((record) =>
+    toTimelineItem(record, "processed", outputsByEventId)
+  );
+  const failed = readQueueRecords("dlq", cwd).map((record) =>
+    toTimelineItem(record, "failed", outputsByEventId)
+  );
+
+  return [...processing, ...pending, ...processed, ...failed].sort((a, b) =>
+    b.updatedAt.localeCompare(a.updatedAt)
+  );
+}
+
+export function getDashboardSnapshot(cwd = process.cwd()): {
+  stats: ReturnType<typeof queueStats>;
+  timeline: DashboardTimelineItem[];
+} {
+  return {
+    stats: queueStats(cwd),
+    timeline: getTimeline(cwd),
+  };
+}

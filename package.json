@@ -42,12 +42,14 @@
   "author": "Ayush Bhiogade",
   "license": "MIT",
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1000.0",
     "@google/generative-ai": "^0.24.1",
     "chalk": "^5.4.1",
     "commander": "^13.1.0",
     "dotenv": "^16.4.7",
     "inquirer": "^12.4.2",
     "js-yaml": "^4.1.0",
+    "playwright": "^1.58.2",
     "simple-git": "^3.27.0"
   },
   "devDependencies": {

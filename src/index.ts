@@ -7,6 +7,9 @@ import { summarizeCommand } from "./commands/summarize.js";
 import { generateCommand } from "./commands/generate.js";
 import { ingestGithubCommand } from "./commands/ingest-github.js";
 import { runWorkerCommand } from "./commands/run-worker.js";
+import { serveWebhooksCommand } from "./commands/serve-webhooks.js";
+import { serveDashboardCommand } from "./commands/serve-dashboard.js";
+import { runWeeklySummaryCommand } from "./commands/run-weekly-summary.js";
 
 const program = new Command();
 
@@ -22,5 +25,8 @@ program.addCommand(summarizeCommand);
 program.addCommand(generateCommand);
 program.addCommand(ingestGithubCommand);
 program.addCommand(runWorkerCommand);
+program.addCommand(serveWebhooksCommand);
+program.addCommand(serveDashboardCommand);
+program.addCommand(runWeeklySummaryCommand);
 
 program.parse();

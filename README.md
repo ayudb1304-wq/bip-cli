@@ -126,6 +126,68 @@ Sushi keeps generated posts concise by default:
 | `npx @ayudb1304/sushi generate --commit <sha> [--save]` | Generate X + LinkedIn drafts from a commit |
 | `npx @ayudb1304/sushi ingest-github --event-file <path> [--repo-path <path>]` | Queue GitHub push webhook commits for processing |
 | `npx @ayudb1304/sushi run-worker [--once]` | Process queued events and write outputs to `.bip/engine/outputs/` |
+| `npx @ayudb1304/sushi serve-webhooks [--port 8787] [--host 0.0.0.0]` | Run GitHub webhook receiver (`POST /webhooks/github`) with signature verification |
+| `npx @ayudb1304/sushi serve-dashboard [--port 8788] [--host 0.0.0.0]` | Run dashboard API + timeline UI |
+| `npx @ayudb1304/sushi run-weekly-summary [--once] [--interval-hours 168]` | Generate weekly summary markdown on schedule |
+
+## Phase 2 Engine setup
+
+### Required environment variables
+
+Set these before running live webhook + worker flows:
+
+```bash
+# Required for webhook signature verification
+export GITHUB_WEBHOOK_SECRET="your-webhook-secret"
+
+# Required for encrypted installation token storage (min 16 chars)
+export BIP_TOKEN_MASTER_KEY="replace-with-strong-secret"
+```
+
+Optional but useful:
+
+```bash
+# Fallback token used when webhook Authorization header is not provided
+export GITHUB_INSTALLATION_TOKEN="ghp_xxx"
+
+# Optional asset upload (if set, generated assets upload to S3)
+export AWS_REGION="us-east-1"
+export BIP_ASSET_BUCKET="your-bucket-name"
+export BIP_ASSET_CDN_BASE_URL="https://cdn.example.com" # optional
+```
+
+### End-to-end Phase 2 flow
+
+1. Start webhook receiver:
+
+```bash
+npx @ayudb1304/sushi serve-webhooks --port 8787
+```
+
+2. Point GitHub webhook to:
+
+```text
+POST http://<your-host>:8787/webhooks/github
+```
+
+3. Process queued events:
+
+```bash
+npx @ayudb1304/sushi run-worker
+```
+
+4. Inspect timeline and assets:
+
+```bash
+npx @ayudb1304/sushi serve-dashboard --port 8788
+# open http://localhost:8788
+```
+
+5. Generate weekly summary:
+
+```bash
+npx @ayudb1304/sushi run-weekly-summary --once
+```
 
 ## PATH troubleshooting (global install users)
 

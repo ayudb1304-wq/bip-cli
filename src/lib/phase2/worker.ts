@@ -7,11 +7,28 @@ import { renderDrafts } from "../templates.js";
 import { buildMemoryContext, loadNarrativeMemory, saveNarrativeMemoryEntry } from "../memory.js";
 import { logGenerationTelemetry } from "../monitoring.js";
 import type { EngineEvent, WorkerResult } from "./types.js";
+import { getInstallationToken } from "./token-store.js";
+import { fetchCommitDiffFromGitHub } from "./github.js";
+import { normalizeDiff } from "./normalize.js";
+import {
+  buildProgressDashboardSvg,
+  buildSnippetCardSvg,
+  persistAsset,
+  selectSnippetFromDiff,
+} from "./assets.js";
 
 export async function processEngineEvent(event: EngineEvent): Promise<WorkerResult> {
   const repoPath = event.repoPath ?? process.cwd();
   const config = loadConfig(repoPath);
-  const diff = await parseDiff(event.commitSha, repoPath);
+  const token = getInstallationToken(event.repoFullName, {
+    installationId: event.installationId,
+    cwd: repoPath,
+  });
+  const diff =
+    token && !event.repoPath
+      ? await fetchCommitDiffFromGitHub(event.repoFullName, event.commitSha, token)
+      : await parseDiff(event.commitSha, repoPath);
+  const normalizedDiff = normalizeDiff(diff);
   const memory = loadNarrativeMemory(repoPath);
   const memoryContext = buildMemoryContext(diff, memory);
   const { narrative, telemetry } = await generateNarrativeWithTelemetry(
@@ -24,6 +41,26 @@ export async function processEngineEvent(event: EngineEvent): Promise<WorkerResu
   saveNarrativeMemoryEntry(diff, narrative, repoPath);
   logGenerationTelemetry("engine-worker", diff.commitSha, telemetry, repoPath);
 
+  const snippet = selectSnippetFromDiff(normalizedDiff);
+  const snippetCardUrl = snippet
+    ? await persistAsset(buildSnippetCardSvg(snippet), `${event.commitSha.slice(0, 8)}-snippet`, {
+        cwd: repoPath,
+        preferPng: true,
+      })
+    : undefined;
+  const progressDashboardUrl = await persistAsset(
+    buildProgressDashboardSvg({
+      locAdded: diff.files.reduce((sum, file) => sum + file.additions, 0),
+      locDeleted: diff.files.reduce((sum, file) => sum + file.deletions, 0),
+      filesChanged: diff.files.length,
+    }),
+    `${event.commitSha.slice(0, 8)}-progress`,
+    {
+      cwd: repoPath,
+      preferPng: true,
+    }
+  );
+
   const outDir = path.join(repoPath, ".bip", "engine", "outputs");
   fs.mkdirSync(outDir, { recursive: true });
 
@@ -33,8 +70,13 @@ export async function processEngineEvent(event: EngineEvent): Promise<WorkerResu
     JSON.stringify(
       {
         event,
+        normalizedDiff,
         narrative,
         drafts,
+        assets: {
+          snippetCardUrl,
+          progressDashboardUrl,
+        },
         telemetry,
       },
       null,
@@ -47,5 +89,9 @@ export async function processEngineEvent(event: EngineEvent): Promise<WorkerResu
     eventId: event.id,
     commitSha: event.commitSha,
     outputPath,
+    assets: {
+      snippetCardUrl,
+      progressDashboardUrl,
+    },
   };
 }
